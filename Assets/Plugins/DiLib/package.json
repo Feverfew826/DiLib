@@ -1,0 +1,29 @@
+{
+  "name": "com.feverfew826.DiLib",
+  "version": "0.0.1",
+  "displayName": "DiLib",
+  "description": "This project aims to simple and fast dependency injection.",
+  "unity": "2021.3",
+  "unityRelease": "24f1",
+  "documentationUrl": "https://github.com/Feverfew826/DiLib/blob/main/README.md",
+  "changelogUrl": "https://github.com/Feverfew826/DiLib/commits/main/",
+  "licensesUrl": "https://github.com/Feverfew826/DiLib/blob/main/LICENSE",
+  "dependencies": {
+ },
+ "keywords": [
+	"Unity",
+    "Dependency Injection",
+  ],
+  "author": {
+    "name": "Feverfew826",
+    "email": "lightkill826@gmail.com",
+    "url": "https://github.com/Feverfew826"
+  },
+  "samples": [
+        {
+            "displayName": "Usage sample",
+            "description": "This is usage sample.",
+            "path": "Samples~/UsageSample"
+        }
+	]
+}
