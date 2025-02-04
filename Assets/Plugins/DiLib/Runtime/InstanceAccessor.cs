@@ -1,14 +1,18 @@
 using System;
 using System.Collections.Generic;
 
+using UnityEngine.Assertions;
+
 namespace Feverfew.DiLib
 {
     internal static class InstanceAccessor<Contract, Type>
     {
         private static Dictionary<(DiContext, Contract), Type> _dictionary = new Dictionary<(DiContext, Contract), Type>();
 
-        public static IDisposable Add((DiContext, Contract) key, Type instance)
+        public static IDisposable Add((DiContext context, Contract contract) key, Type instance)
         {
+            Assert.IsFalse(_dictionary.ContainsKey(key), $"Duplicated '{typeof(Type)}' type instance are prepared on same DI context({key.context}) and same contract({key.contract}).");
+
             _dictionary.Add(key, instance);
 
             return new Remover(key);
@@ -16,7 +20,9 @@ namespace Feverfew.DiLib
 
         public static bool TryGet((DiContext, Contract) key, out Type instance)
         {
-            return _dictionary.TryGetValue(key, out instance);
+            var hasInstance = _dictionary.TryGetValue(key, out instance);
+
+            return hasInstance;
         }
 
         private class Remover : IDisposable
