@@ -82,7 +82,7 @@ namespace Feverfew.DiLib
 
         private class DefaultContract
         {
-            public static DefaultContract Default = new();
+            public static readonly DefaultContract Default = new();
         }
     }
 
