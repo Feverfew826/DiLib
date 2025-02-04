@@ -15,17 +15,16 @@ namespace Feverfew.DiLib
         private List<IDisposable> _removers = new List<IDisposable>(32);
 
         // To maintain one and only root context, prevent to create instance.
-        internal DiContext(string name)
+        internal DiContext(string name) : this(null, name)
         {
-            _diagnosticContextName = name;
-
-            Count(_diagnosticContextName);
         }
 
-        private DiContext(DiContext parent, string name) : this(name)
+        private DiContext(DiContext parent, string name)
         {
             _parent = parent;
-            _parent._childs.Add(this);
+            _parent?._childs.Add(this);
+
+            DiContextAudit.AuditCount(this, name);
         }
 
         public DiContext GetNewChild()
@@ -78,35 +77,43 @@ namespace Feverfew.DiLib
 
             _removers.Clear();
 
-            Decount(_diagnosticContextName);
+            DiContextAudit.AuditDecount(this);
         }
 
         private class DefaultContract
         {
             public static DefaultContract Default = new();
         }
+    }
 
+    public class DiContextAudit
+    {
         #region Diagnostic
         public static bool Dianostic = true;
 
-        private static List<string> _diagnosticContextNames = new();
-
-        private string _diagnosticContextName;
+        private static Dictionary<DiContext, string> _diagnosticContextNames = new();
 
         [Conditional("UNITY_EDITOR")]
-        private void Count(string name)
+        public static void AuditCount(DiContext context, string name)
         {
-            _diagnosticContextNames.Add(name);
+            _diagnosticContextNames.Add(context, name);
             var logger = DefaultContexts.Project?.Get<ILogger>() ?? UnityEngine.Debug.unityLogger;
-            logger.Log($"Number of DiContext: {_diagnosticContextNames.Count}");
+            logger.Log($"Number of DiContext: {_diagnosticContextNames.Count}, Added {name}");
         }
 
         [Conditional("UNITY_EDITOR")]
-        private void Decount(string name)
+        public static void AuditDecount(DiContext context)
         {
-            _diagnosticContextNames.Add(name);
-            var logger = DefaultContexts.Project.Get<ILogger>() ?? UnityEngine.Debug.unityLogger;
-            logger.Log($"Number of DiContext: {_diagnosticContextNames.Count}");
+            if (_diagnosticContextNames.TryGetValue(context, out var name))
+            {
+                _diagnosticContextNames.Remove(context);
+                var logger = DefaultContexts.Project.Get<ILogger>() ?? UnityEngine.Debug.unityLogger;
+                logger.Log($"Number of DiContext: {_diagnosticContextNames.Count}, Removed {name}");
+            }
+            else
+            {
+                UnityEngine.Debug.Assert(false);
+            }
         }
         #endregion
     }
