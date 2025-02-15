@@ -7,9 +7,9 @@ namespace Feverfew.DiLib.Samples.UsageSample
     {
         private void Awake()
         {
-            DiLib.DefaultContexts.Project.Set("Hello, world!");
+            DiLib.DefaultContexts.ProjectContextDependencyContainer.Set("Hello, world!");
 
-            var sceneContext = DiLib.DefaultContexts.GetSceneContext(gameObject.scene);
+            var sceneContext = DiLib.DefaultContexts.GetSceneDependencyContainer(gameObject.scene);
 
             sceneContext.Set(16);
             sceneContext.Set(new TestParameter());

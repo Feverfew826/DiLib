@@ -6,10 +6,10 @@ namespace Feverfew.DiLib.Samples.UsageSample
     {
         private void Awake()
         {
-            var message = DiLib.DefaultContexts.Project.Get<string>();
+            var message = DiLib.DefaultContexts.ProjectContextDependencyContainer.Get<string>();
             Debug.Log(message);
 
-            var sceneContext = DiLib.DefaultContexts.GetSceneContext(gameObject.scene);
+            var sceneContext = DiLib.DefaultContexts.GetSceneDependencyContainer(gameObject.scene);
 
             var number = sceneContext.Get<int>();
             Debug.Log(number);
