@@ -5,31 +5,31 @@ using UnityEngine.Assertions;
 
 namespace Feverfew.DiLib
 {
-    internal static class DependencyAccessor<Contract, Type>
+    internal static class DependencyAccessor<Type>
     {
-        private static Dictionary<(DiContext, Contract), Func<Type>> _dictionary = new Dictionary<(DiContext, Contract), Func<Type>>();
+        private static Dictionary<DiContext, Func<Type>> _dictionary = new Dictionary<DiContext, Func<Type>>();
 
-        public static IDisposable Add((DiContext context, Contract contract) key, Func<Type> factory)
+        public static IDisposable Add(DiContext context, Func<Type> factory)
         {
-            Assert.IsFalse(_dictionary.ContainsKey(key), $"Duplicated '{typeof(Type)}' type instance are prepared on same DI context({key.context}) and same contract({key.contract}).");
+            Assert.IsFalse(_dictionary.ContainsKey(context), $"{{{context}, {typeof(Type)}}} is already exist.");
 
-            _dictionary.Add(key, factory);
+            _dictionary.Add(context, factory);
 
-            return new Remover(key);
+            return new Remover(context);
         }
 
-        public static IDisposable Add((DiContext context, Contract contract) key, Type instance)
+        public static IDisposable Add(DiContext context, Type instance)
         {
-            return Add(key, () => instance);
+            return Add(context, () => instance);
         }
 
-        public static bool TryGet((DiContext context, Contract contract) key, out Type instance)
+        public static bool TryGet(DiContext context, out Type instance)
         {
-            var hasPreparedDependency = _dictionary.TryGetValue(key, out var factory);
+            var hasPreparedDependency = _dictionary.TryGetValue(context, out var factory);
 
             if (hasPreparedDependency)
             {
-                Assert.IsNotNull(factory, $"Factory of type '{typeof(Type)} on context({key.context}) of contract({key.contract})' are null.");
+                Assert.IsNotNull(factory, $"{{{context}, {typeof(Type)}}} No dependency is prepared.");
 
                 instance = factory.Invoke() ?? default;
             }
@@ -43,9 +43,9 @@ namespace Feverfew.DiLib
 
         private class Remover : IDisposable
         {
-            private readonly (DiContext, Contract) _key;
+            private readonly DiContext _key;
 
-            public Remover((DiContext, Contract) key)
+            public Remover(DiContext key)
             {
                 _key = key;
             }
@@ -53,6 +53,46 @@ namespace Feverfew.DiLib
             public void Dispose()
             {
                 _dictionary.Remove(_key);
+            }
+        }
+    }
+
+    internal static class ChildAccessor<Key>
+    {
+        private static Dictionary<(DiContext, Key), DiContext> _dictionary = new Dictionary<(DiContext, Key), DiContext>();
+
+        public static DiContext GetChild(DiContext context, Key key)
+        {
+            var childKey = (context, key);
+            if (_dictionary.TryGetValue(childKey, out var child))
+            {
+                return child;
+            }
+            else
+            {
+                var newChild = new DiContext($"{context}/{key.ToString()}");
+                _dictionary.Add(childKey, newChild);
+                new Remover(childKey).AddTo(context);
+                return newChild;
+            }
+        }
+
+        private class Remover : IDisposable
+        {
+            private readonly (DiContext, Key) _childKey;
+
+            public Remover((DiContext, Key) childKey)
+            {
+                _childKey = childKey;
+            }
+
+            public void Dispose()
+            {
+                if (_dictionary.TryGetValue(_childKey, out var child))
+                {
+                    child.DisposeInternal();
+                    _dictionary.Remove(_childKey);
+                }
             }
         }
     }

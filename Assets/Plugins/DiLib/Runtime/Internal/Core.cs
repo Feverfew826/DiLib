@@ -10,11 +10,11 @@ namespace Feverfew.DiLib
     {
         private readonly DiContext _parent;
 
-        private readonly List<DiContext> _childs = new();
-
-        private List<IDisposable> _removers = new List<IDisposable>(32);
-
         private readonly string _name;
+
+        private bool _isDisposed = false;
+
+        private Stack<IDisposable> _disposableStack = new Stack<IDisposable>();
 
         // To maintain one and only root context, prevent to create instance.
         internal DiContext(string name) : this(null, name)
@@ -26,60 +26,35 @@ namespace Feverfew.DiLib
             _name = name;
 
             _parent = parent;
-            _parent?._childs.Add(this);
+            _parent?._disposableStack.Push(this);
 
             DiContextAudit.AuditCount(this);
         }
 
-        internal DiContext GetNewChild()
+        internal DiContext Child<Key>(Key key)
         {
-            return new DiContext(this, string.Empty);
-        }
-
-        IDedendencyContainer IDedendencyContainer.GetNewChild()
-        {
-            return GetNewChild();
-        }
-
-        internal DiContext GetNewChild(string name)
-        {
-            return new DiContext(this, name);
+            return ChildAccessor<Key>.GetChild(this, key);
         }
 
         internal void Set<Type>(Type instance)
         {
-            Set(DefaultContract.Default, instance);
+            _disposableStack.Push(DependencyAccessor<Type>.Add(this, instance));
         }
 
         internal void Set<Type>(Func<Type> factory)
         {
-            Set(DefaultContract.Default, factory);
-        }
-
-        internal void Set<Contract, Type>(Contract contract, Type instance)
-        {
-            _removers.Add(DependencyAccessor<Contract, Type>.Add((this, contract), instance));
-        }
-
-        internal void Set<Contract, Type>(Contract contract, Func<Type> factory)
-        {
-            _removers.Add(DependencyAccessor<Contract, Type>.Add((this, contract), factory));
+            _disposableStack.Push(DependencyAccessor<Type>.Add(this, factory));
         }
 
         internal Type Get<Type>()
         {
-            return Get<DefaultContract, Type>(DefaultContract.Default);
-        }
-
-        internal Type Get<Contract, Type>(Contract contract)
-        {
             var context = this;
             var instance = default(Type);
-            while (DependencyAccessor<Contract, Type>.TryGet((context, contract), out instance) == false)
+            while (DependencyAccessor<Type>.TryGet(context, out instance) == false)
             {
                 context = context._parent;
                 if (context == null)
-                    return instance;
+                    break;
             }
 
             return instance;
@@ -92,61 +67,61 @@ namespace Feverfew.DiLib
 
         internal void DisposeInternal()
         {
-            foreach (var child in _childs)
-                child.DisposeInternal();
-            _childs.Clear();
+            if (_isDisposed == true)
+                return;
 
-            foreach (var remover in _removers)
-                remover.Dispose();
+            _isDisposed = true;
 
-            _removers.Clear();
+            foreach (var item in _disposableStack)
+            {
+                try
+                {
+                    item?.Dispose();
+                }
+                catch (Exception e)
+                {
+                    DiContextAudit.LogException(e);
+                }
+            }
+            _disposableStack.Clear();
 
             DiContextAudit.AuditDecount(this);
         }
-
-        private class DefaultContract
-        {
-            public static readonly DefaultContract Default = new();
-
-            public override string ToString()
-            {
-                return "DefaultContract";
-            }
-        }
     }
 
-    internal partial class DiContext : IDedendencyContainer
+    internal partial class DiContext : IDependencyContainer
     {
-        void IDedendencyContainer.Set<Type>(Type instance)
+        IDependencyContainer IDependencyContainer.Child<Key>(Key key)
+        {
+            return Child(key);
+        }
+
+        void IDependencyContainer.Set<Type>(Type instance)
         {
             Set(instance);
         }
 
-        void IDedendencyContainer.Set<Type>(Func<Type> factory)
+        void IDependencyContainer.Set<Type>(Func<Type> factory)
         {
             Set(factory);
         }
 
-        void IDedendencyContainer.Set<Contract, Type>(Contract contract, Type instance)
-        {
-            Set(contract, instance);
-        }
-
-        void IDedendencyContainer.Set<Contract, Type>(Contract contract, Func<Type> factory)
-        {
-            Set(contract, factory);
-        }
-
-        Type IDedendencyContainer.Get<Type>()
+        Type IDependencyContainer.Get<Type>()
         {
             return Get<Type>();
         }
+    }
 
-        Type IDedendencyContainer.Get<Contract, Type>(Contract contract)
+    internal partial class DiContext : IDisposableContainer
+    {
+        void IDisposableContainer.AddDisposable(IDisposable disposable)
         {
-            return Get<Contract, Type>(contract);
+            _disposableStack.Push(disposable);
         }
+    }
 
+    internal partial class DiContext : IDisposable
+    {
         void IDisposable.Dispose()
         {
             DisposeInternal();
@@ -164,7 +139,7 @@ namespace Feverfew.DiLib
         public static void AuditCount(DiContext context)
         {
             _diagnosticContexts.Add(context);
-            var logger = DefaultContexts.ProjectContextDependencyContainer?.Get<ILogger>() ?? UnityEngine.Debug.unityLogger;
+            var logger = Containers.ProjectContext?.Get<ILogger>() ?? UnityEngine.Debug.unityLogger;
             logger.Log($"Number of DiContext: {_diagnosticContexts.Count}, Added {context}");
         }
 
@@ -174,13 +149,20 @@ namespace Feverfew.DiLib
             if (_diagnosticContexts.Contains(context))
             {
                 _diagnosticContexts.Remove(context);
-                var logger = DefaultContexts.ProjectContextDependencyContainer.Get<ILogger>() ?? UnityEngine.Debug.unityLogger;
+                var logger = Containers.ProjectContext.Get<ILogger>() ?? UnityEngine.Debug.unityLogger;
                 logger.Log($"Number of DiContext: {_diagnosticContexts.Count}, Removed {context}");
             }
             else
             {
                 UnityEngine.Debug.Assert(false);
             }
+        }
+
+        [Conditional("UNITY_EDITOR")]
+        public static void LogException(Exception message)
+        {
+            var logger = Containers.ProjectContext.Get<ILogger>() ?? UnityEngine.Debug.unityLogger;
+            logger.LogException(message);
         }
         #endregion
     }

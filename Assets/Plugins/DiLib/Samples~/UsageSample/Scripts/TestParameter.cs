@@ -1,6 +1,10 @@
+using System;
+
+using UnityEngine;
+
 namespace Feverfew.DiLib.Samples.UsageSample
 {
-    public class TestParameter
+    public sealed class TestParameter : IDisposable
     {
         private static int _counter = 1;
 
@@ -12,6 +16,11 @@ namespace Feverfew.DiLib.Samples.UsageSample
         {
             _id = _counter;
             _counter++;
+        }
+
+        public void Dispose()
+        {
+            Debug.Log("TestParameter is disposed.");
         }
     }
 }

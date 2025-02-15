@@ -6,16 +6,30 @@ namespace Feverfew.DiLib.Samples.UsageSample
     {
         private void Awake()
         {
-            var message = DiLib.DefaultContexts.ProjectContextDependencyContainer.Get<string>();
+            var message = DiLib.Containers.ProjectContext.Get<string>();
             Debug.Log(message);
 
-            var sceneContext = DiLib.DefaultContexts.GetSceneDependencyContainer(gameObject.scene);
+            var sceneContext = DiLib.Containers.SceneContext(gameObject.scene);
 
-            var number = sceneContext.Get<int>();
-            Debug.Log(number);
+            var floatValue = sceneContext.Get<float>();
+            Debug.Log(floatValue);
 
             var testParameter = sceneContext.Get<TestParameter>();
             Debug.Log(testParameter.Id);
+
+            var increaseEachTimeGetLong = sceneContext.Get<long>();
+            Debug.Log(increaseEachTimeGetLong);
+            increaseEachTimeGetLong = sceneContext.Get<long>();
+            Debug.Log(increaseEachTimeGetLong);
+            increaseEachTimeGetLong = sceneContext.Get<long>();
+            Debug.Log(increaseEachTimeGetLong);
+
+            var sceneContextString = sceneContext.Get<string>();
+            Debug.Log(sceneContextString);
+            var child1ContextString = sceneContext.Child("Child1").Get<string>();
+            Debug.Log(child1ContextString);
+            var child2ContextString = sceneContext.Child("Child2").Get<string>();
+            Debug.Log(child2ContextString);
         }
     }
 }

@@ -5,14 +5,25 @@ namespace Feverfew.DiLib.Samples.UsageSample
     [DefaultExecutionOrder(-1)]
     public class SetUsage : MonoBehaviour
     {
+        private long _increaseEachTimeGetLong = 64L;
+
         private void Awake()
         {
-            DiLib.DefaultContexts.ProjectContextDependencyContainer.Set("Hello, world!");
+            var sceneContext = DiLib.Containers.SceneContext(gameObject.scene);
 
-            var sceneContext = DiLib.DefaultContexts.GetSceneDependencyContainer(gameObject.scene);
+            sceneContext.Set(32f);
+            sceneContext.Set(new TestParameter().AddTo(sceneContext));
+            sceneContext.Set(() => _increaseEachTimeGetLong++);
 
-            sceneContext.Set(16);
-            sceneContext.Set(new TestParameter());
+            sceneContext.Set("SceneContext");
+            sceneContext.Child("Child1").Set("SceneContext/Child1");
+            sceneContext.Child("Child2").Set("SceneContext/Child2");
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void InjectProjectDependency()
+        {
+            DiLib.Containers.ProjectContext.Set("Hello, world!");
         }
     }
 }
