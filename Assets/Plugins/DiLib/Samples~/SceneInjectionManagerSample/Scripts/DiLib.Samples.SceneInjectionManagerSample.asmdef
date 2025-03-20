@@ -1,0 +1,16 @@
+{
+    "name": "DiLib.Samples.SceneInjectionManagerSample",
+    "rootNamespace": "Feverfew.DiLib.Samples.SceneInjectionManagerSample",
+    "references": [
+        "GUID:f75819f1ac04368489f9b6a558b2c920"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

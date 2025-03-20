@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Feverfew.DiLib
 {
-    internal partial class DiContext : IDisposable
+    internal sealed partial class DiContext : IDisposable
     {
         private readonly DiContext _parent;
 
@@ -131,7 +131,7 @@ namespace Feverfew.DiLib
     internal class DiContextAudit
     {
         #region Diagnostic
-        public static bool Dianostic = true;
+        public static bool Logging = true;
 
         private static HashSet<DiContext> _diagnosticContexts = new();
 
@@ -139,8 +139,11 @@ namespace Feverfew.DiLib
         public static void AuditCount(DiContext context)
         {
             _diagnosticContexts.Add(context);
-            var logger = Containers.ProjectContext?.Get<ILogger>() ?? UnityEngine.Debug.unityLogger;
-            logger.Log($"Number of DiContext: {_diagnosticContexts.Count}, Added {context}");
+            if(Logging)
+            {
+                var logger = Containers.ProjectContext?.Get<ILogger>() ?? UnityEngine.Debug.unityLogger;
+                logger.Log($"Number of DiContext: {_diagnosticContexts.Count}, Added {context}");
+            }
         }
 
         [Conditional("UNITY_EDITOR")]
@@ -149,8 +152,11 @@ namespace Feverfew.DiLib
             if (_diagnosticContexts.Contains(context))
             {
                 _diagnosticContexts.Remove(context);
-                var logger = Containers.ProjectContext.Get<ILogger>() ?? UnityEngine.Debug.unityLogger;
-                logger.Log($"Number of DiContext: {_diagnosticContexts.Count}, Removed {context}");
+                if (Logging)
+                {
+                    var logger = Containers.ProjectContext.Get<ILogger>() ?? UnityEngine.Debug.unityLogger;
+                    logger.Log($"Number of DiContext: {_diagnosticContexts.Count}, Removed {context}");
+                }
             }
             else
             {
@@ -158,7 +164,6 @@ namespace Feverfew.DiLib
             }
         }
 
-        [Conditional("UNITY_EDITOR")]
         public static void LogException(Exception message)
         {
             var logger = Containers.ProjectContext.Get<ILogger>() ?? UnityEngine.Debug.unityLogger;

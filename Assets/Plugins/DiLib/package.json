@@ -24,6 +24,11 @@
             "displayName": "Usage sample",
             "description": "This is usage sample.",
             "path": "Samples~/UsageSample"
+        },
+        {
+            "displayName": "SceneInjectionManager sample",
+            "description": "This is SceneInjectionManager sample.",
+            "path": "Samples~/SceneInjectionManagerSample"
         }
 	]
 }
